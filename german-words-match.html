@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>German-Russian Word Matching Game</title>
+  <style>
+      body {
+          background-color: #d0e7f9; /* Light blue-grey background */
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          min-height: 100vh;
+      }
+
+      .container {
+          width: 80%;
+          max-width: 1000px;
+          margin-top: 20px;
+          display: flex;
+          justify-content: space-between;
+      }
+
+      .column {
+          width: 45%;
+          background-color: #f0f8ff;
+          border: 2px solid #ccc;
+          border-radius: 10px;
+          box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
+          padding: 20px;
+          box-sizing: border-box;
+      }
+
+      .column h2 {
+          text-align: center;
+          margin-bottom: 15px;
+      }
+
+      .word {
+          padding: 10px;
+          margin: 5px 0;
+          background-color: #ffffff;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          cursor: pointer;
+          user-select: none;
+          transition: background-color 0.3s, transform 0.1s;
+          box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+      }
+
+      .word.selected {
+          background-color: #a8dadc; /* Highlight color */
+          transform: scale(0.98);
+      }
+
+      .word.matched {
+          display: none;
+      }
+
+      #comments {
+          position: fixed;
+          top: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: rgba(255, 255, 255, 0.9);
+          padding: 10px 20px;
+          border-radius: 5px;
+          box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+          display: none;
+          font-size: 1.2em;
+          z-index: 1000;
+      }
+
+      #round-info {
+          margin-top: 20px;
+          font-size: 1.2em;
+      }
+
+      #game-over {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(208, 231, 249, 0.95);
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          z-index: 1001;
+      }
+
+      #game-over h1 {
+          font-size: 3em;
+          margin-bottom: 20px;
+      }
+
+      #restart-button {
+          padding: 10px 20px;
+          font-size: 1.2em;
+          background-color: #4CAF50;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+          transition: background-color 0.3s;
+      }
+
+      #restart-button:hover {
+          background-color: #45a049;
+      }
+
+      /* Animation for disappearing words */
+      .fade-out {
+          animation: fadeOut 0.5s forwards;
+      }
+
+      @keyframes fadeOut {
+          to {
+              opacity: 0;
+              transform: translateY(-20px);
+          }
+      }
+
+      /* Animation for correct match flash */
+      .flash-green {
+          animation: flashGreen 0.5s;
+      }
+
+      @keyframes flashGreen {
+          0% { background-color: #a8dadc; }
+          50% { background-color: #4CAF50; }
+          100% { background-color: #a8dadc; }
+      }
+
+      /* Animation for incorrect match flash */
+      .flash-red {
+          animation: flashRed 0.5s;
+      }
+
+      @keyframes flashRed {
+          0% { background-color: #a8dadc; }
+          50% { background-color: #f44336; }
+          100% { background-color: #a8dadc; }
+      }
+
+      /* Additional styling for word details */
+      .word-details {
+          font-size: 0.9em;
+          color: #555;
+          margin-top: 5px;
+      }
+
+  </style>
+</head>
+<body>
+
+<div id="round-info">Раунд: 1 из 10</div>
+
+<div class="container">
+  <div class="column" id="german-column">
+    <h2>Немецкие слова</h2>
+    <div id="german-words">
+      <!-- German words will be populated here -->
+    </div>
+  </div>
+  <div class="column" id="russian-column">
+    <h2>Русские слова</h2>
+    <div id="russian-words">
+      <!-- Russian words will be populated here -->
+    </div>
+  </div>
+</div>
+
+<div id="comments"></div>
+
+<div id="game-over">
+  <h1>Игра окончена!</h1>
+  <button id="restart-button">Перезапустить</button>
+</div>
+
+<script>
+  // Word lists for 10 rounds, increasing difficulty
+  const rounds = [
+    // Round 1
+    {
+      pairs: [
+        {
+          german: { word: "der Hund", category: "noun" },
+          russian: "собака"
+        },
+        {
+          german: { word: "die Katze", category: "noun" },
+          russian: "кошка"
+        },
+        {
+          german: { word: "das Haus", category: "noun" },
+          russian: "дом"
+        },
+        {
+          german: {
+            word: "gehen",
+            category: "verb",
+            forms: ["gehen", "ging", "gegangen"],
+            separable: false
+          },
+          russian: "идти"
+        },
+        {
+          german: {
+            word: "sprechen",
+            category: "verb",
+            forms: ["sprechen", "sprach", "gesprochen"],
+            separable: false
+          },
+          russian: "говорить"
+        },
+        {
+          german: {
+            word: "und",
+            category: "conjunction"
+          },
+          russian: "и"
+        },
+        {
+          german: {
+            word: "aber",
+            category: "conjunction"
+          },
+          russian: "но"
+        },
+        {
+          german: {
+            word: "für",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "для"
+        },
+        {
+          german: {
+            word: "mit",
+            category: "preposition",
+            case: "Dativ"
+          },
+          russian: "с"
+        },
+        {
+          german: {
+            word: "ohne",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "без"
+        }
+      ]
+    },
+    // Round 2
+    {
+      pairs: [
+        {
+          german: { word: "der Tisch", category: "noun" },
+          russian: "стол"
+        },
+        {
+          german: { word: "die Straße", category: "noun" },
+          russian: "улица"
+        },
+        {
+          german: { word: "das Buch", category: "noun" },
+          russian: "книга"
+        },
+        {
+          german: {
+            word: "essen",
+            category: "verb",
+            forms: ["essen", "aß", "gegessen"],
+            separable: false
+          },
+          russian: "есть"
+        },
+        {
+          german: {
+            word: "lesen",
+            category: "verb",
+            forms: ["lesen", "las", "gelesen"],
+            separable: false
+          },
+          russian: "читать"
+        },
+        {
+          german: {
+            word: "weil",
+            category: "conjunction"
+          },
+          russian: "потому что"
+        },
+        {
+          german: {
+            word: "oder",
+            category: "conjunction"
+          },
+          russian: "или"
+        },
+        {
+          german: {
+            word: "über",
+            category: "preposition",
+            case: "Akkusativ/Dativ"
+          },
+          russian: "над"
+        },
+        {
+          german: {
+            word: "unter",
+            category: "preposition",
+            case: "Akkusativ/Dativ"
+          },
+          russian: "под"
+        },
+        {
+          german: {
+            word: "zwischen",
+            category: "preposition",
+            case: "Akkusativ/Dativ"
+          },
+          russian: "между"
+        }
+      ]
+    },
+    // Round 3
+    {
+      pairs: [
+        {
+          german: { word: "der Lehrer", category: "noun" },
+          russian: "учитель"
+        },
+        {
+          german: { word: "die Schule", category: "noun" },
+          russian: "школа"
+        },
+        {
+          german: { word: "das Auto", category: "noun" },
+          russian: "автомобиль"
+        },
+        {
+          german: {
+            word: "schreiben",
+            category: "verb",
+            forms: ["schreiben", "schrieb", "geschrieben"],
+            separable: false
+          },
+          russian: "писать"
+        },
+        {
+          german: {
+            word: "fahren",
+            category: "verb",
+            forms: ["fahren", "fuhr", "gefahren"],
+            separable: false
+          },
+          russian: "ехать"
+        },
+        {
+          german: {
+            word: "trotzdem",
+            category: "conjunction"
+          },
+          russian: "тем не менее"
+        },
+        {
+          german: {
+            word: "denn",
+            category: "conjunction"
+          },
+          russian: "ибо"
+        },
+        {
+          german: {
+            word: "vor",
+            category: "preposition",
+            case: "Akkusativ/Dativ"
+          },
+          russian: "перед"
+        },
+        {
+          german: {
+            word: "nach",
+            category: "preposition",
+            case: "Dativ"
+          },
+          russian: "после"
+        },
+        {
+          german: {
+            word: "gegen",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "против"
+        }
+      ]
+    },
+    // Round 4
+    {
+      pairs: [
+        {
+          german: { word: "der Apfel", category: "noun" },
+          russian: "яблоко"
+        },
+        {
+          german: { word: "die Freiheit", category: "noun" },
+          russian: "свобода"
+        },
+        {
+          german: { word: "das Fenster", category: "noun" },
+          russian: "окно"
+        },
+        {
+          german: {
+            word: "laufen",
+            category: "verb",
+            forms: ["laufen", "lief", "gelaufen"],
+            separable: false
+          },
+          russian: "бежать"
+        },
+        {
+          german: {
+            word: "sehen",
+            category: "verb",
+            forms: ["sehen", "sah", "gesehen"],
+            separable: false
+          },
+          russian: "видеть"
+        },
+        {
+          german: {
+            word: "während",
+            category: "conjunction"
+          },
+          russian: "во время"
+        },
+        {
+          german: {
+            word: "sodass",
+            category: "conjunction"
+          },
+          russian: "так что"
+        },
+        {
+          german: {
+            word: "durch",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "через"
+        },
+        {
+          german: {
+            word: "entlang",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "вдоль"
+        },
+        {
+          german: {
+            word: "ohnehin",
+            category: "adverb"
+          },
+          russian: "в любом случае"
+        }
+      ]
+    },
+    // Round 5
+    {
+      pairs: [
+        {
+          german: { word: "der Computer", category: "noun" },
+          russian: "компьютер"
+        },
+        {
+          german: { word: "die Universität", category: "noun" },
+          russian: "университет"
+        },
+        {
+          german: { word: "das Telefon", category: "noun" },
+          russian: "телефон"
+        },
+        {
+          german: {
+            word: "verstehen",
+            category: "verb",
+            forms: ["verstehen", "verstand", "verstanden"],
+            separable: false
+          },
+          russian: "понимать"
+        },
+        {
+          german: {
+            word: "beginnen",
+            category: "verb",
+            forms: ["beginnen", "begann", "begonnen"],
+            separable: false
+          },
+          russian: "начинать"
+        },
+        {
+          german: {
+            word: "sobald",
+            category: "conjunction"
+          },
+          russian: "как только"
+        },
+        {
+          german: {
+            word: "statt",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "вместо"
+        },
+        {
+          german: {
+            word: "trotz",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "несмотря на"
+        },
+        {
+          german: {
+            word: "entgegen",
+            category: "preposition",
+            case: "Dativ"
+          },
+          russian: "вопреки"
+        },
+        {
+          german: {
+            word: "außerhalb",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "за пределами"
+        }
+      ]
+    },
+    // Round 6
+    {
+      pairs: [
+        {
+          german: { word: "der Fortschritt", category: "noun" },
+          russian: "прогресс"
+        },
+        {
+          german: { word: "die Verantwortung", category: "noun" },
+          russian: "ответственность"
+        },
+        {
+          german: { word: "das Wetter", category: "noun" },
+          russian: "погода"
+        },
+        {
+          german: {
+            word: "entwickeln",
+            category: "verb",
+            forms: ["entwickeln", "entwickelte", "entwickelt"],
+            separable: false
+          },
+          russian: "развивать"
+        },
+        {
+          german: {
+            word: "diskutieren",
+            category: "verb",
+            forms: ["diskutieren", "diskutierte", "diskutiert"],
+            separable: false
+          },
+          russian: "обсуждать"
+        },
+        {
+          german: {
+            word: "indem",
+            category: "conjunction"
+          },
+          russian: "путем"
+        },
+        {
+          german: {
+            word: "obwohl",
+            category: "conjunction"
+          },
+          russian: "хотя"
+        },
+        {
+          german: {
+            word: "trotzdem",
+            category: "conjunction"
+          },
+          russian: "тем не менее"
+        },
+        {
+          german: {
+            word: "wegen",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "из-за"
+        },
+        {
+          german: {
+            word: "bezüglich",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "касательно"
+        }
+      ]
+    },
+    // Round 7
+    {
+      pairs: [
+        {
+          german: { word: "der Wissenschaftler", category: "noun" },
+          russian: "ученый"
+        },
+        {
+          german: { word: "die Gesellschaft", category: "noun" },
+          russian: "общество"
+        },
+        {
+          german: { word: "das Ergebnis", category: "noun" },
+          russian: "результат"
+        },
+        {
+          german: {
+            word: "untersuchen",
+            category: "verb",
+            forms: ["untersuchen", "untersuchte", "untersucht"],
+            separable: false
+          },
+          russian: "исследовать"
+        },
+        {
+          german: {
+            word: "erklären",
+            category: "verb",
+            forms: ["erklären", "erklärte", "erklärt"],
+            separable: false
+          },
+          russian: "объяснять"
+        },
+        {
+          german: {
+            word: "währenddessen",
+            category: "conjunction"
+          },
+          russian: "тем временем"
+        },
+        {
+          german: {
+            word: "daher",
+            category: "adverb"
+          },
+          russian: "поэтому"
+        },
+        {
+          german: {
+            word: "trotz alledem",
+            category: "conjunction"
+          },
+          russian: "несмотря на всё"
+        },
+        {
+          german: {
+            word: "im Hinblick auf",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "в отношении"
+        },
+        {
+          german: {
+            word: "innerhalb",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "внутри"
+        }
+      ]
+    },
+    // Round 8
+    {
+      pairs: [
+        {
+          german: { word: "der Vertrag", category: "noun" },
+          russian: "договор"
+        },
+        {
+          german: { word: "die Regierung", category: "noun" },
+          russian: "правительство"
+        },
+        {
+          german: { word: "das Verhalten", category: "noun" },
+          russian: "поведение"
+        },
+        {
+          german: {
+            word: "vergleichen",
+            category: "verb",
+            forms: ["vergleichen", "verglich", "verglichen"],
+            separable: false
+          },
+          russian: "сравнивать"
+        },
+        {
+          german: {
+            word: "bestätigen",
+            category: "verb",
+            forms: ["bestätigen", "bestätigte", "bestätigt"],
+            separable: false
+          },
+          russian: "подтверждать"
+        },
+        {
+          german: {
+            word: "infolge",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "вследствие"
+        },
+        {
+          german: {
+            word: "zwar",
+            category: "adverb"
+          },
+          russian: "впрочем"
+        },
+        {
+          german: {
+            word: "nichtsdestotrotz",
+            category: "conjunction"
+          },
+          russian: "всё же"
+        },
+        {
+          german: {
+            word: "in Bezug auf",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "относительно"
+        },
+        {
+          german: {
+            word: "außerhalb von",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "за пределами"
+        }
+      ]
+    },
+    // Round 9
+    {
+      pairs: [
+        {
+          german: { word: "die Herausforderung", category: "noun" },
+          russian: "вызов"
+        },
+        {
+          german: { word: "die Erfahrung", category: "noun" },
+          russian: "опыт"
+        },
+        {
+          german: { word: "das Ergebnis", category: "noun" },
+          russian: "результат"
+        },
+        {
+          german: {
+            word: "bewältigen",
+            category: "verb",
+            forms: ["bewältigen", "bewältigte", "bewältigt"],
+            separable: false
+          },
+          russian: "преодолевать"
+        },
+        {
+          german: {
+            word: "erforschen",
+            category: "verb",
+            forms: ["erforschen", "erforschte", "erforscht"],
+            separable: false
+          },
+          russian: "исследовать"
+        },
+        {
+          german: {
+            word: "infolge dessen",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "вследствие этого"
+        },
+        {
+          german: {
+            word: "hingegen",
+            category: "conjunction"
+          },
+          russian: "в то время как"
+        },
+        {
+          german: {
+            word: "unbeschadet",
+            category: "conjunction"
+          },
+          russian: "несмотря на"
+        },
+        {
+          german: {
+            word: "in Hinsicht auf",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "с точки зрения"
+        },
+        {
+          german: {
+            word: "jenseits von",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "за пределами"
+        }
+      ]
+    },
+    // Round 10
+    {
+      pairs: [
+        {
+          german: { word: "die Selbstständigkeit", category: "noun" },
+          russian: "самостоятельность"
+        },
+        {
+          german: { word: "die Möglichkeit", category: "noun" },
+          russian: "возможность"
+        },
+        {
+          german: { word: "das Verständnis", category: "noun" },
+          russian: "понимание"
+        },
+        {
+          german: {
+            word: "implementieren",
+            category: "verb",
+            forms: ["implementieren", "implementierte", "implementiert"],
+            separable: false
+          },
+          russian: "реализовать"
+        },
+        {
+          german: {
+            word: "reflektieren",
+            category: "verb",
+            forms: ["reflektieren", "reflektierte", "reflektiert"],
+            separable: false
+          },
+          russian: "рефлексировать"
+        },
+        {
+          german: {
+            word: "infolge von",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "вследствие"
+        },
+        {
+          german: {
+            word: "nichtsdestoweniger",
+            category: "conjunction"
+          },
+          russian: "тем не менее"
+        },
+        {
+          german: {
+            word: "gemäß",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "согласно"
+        },
+        {
+          german: {
+            word: "in Bezug auf",
+            category: "preposition",
+            case: "Akkusativ"
+          },
+          russian: "относительно"
+        },
+        {
+          german: {
+            word: "unabhängig von",
+            category: "preposition",
+            case: "Genitiv"
+          },
+          russian: "независимо от"
+        }
+      ]
+    }
+  ];
+
+  let currentRound = 0;
+  let selectedGerman = null;
+  let selectedRussian = null;
+
+  const germanContainer = document.getElementById('german-words');
+  const russianContainer = document.getElementById('russian-words');
+  const commentsDiv = document.getElementById('comments');
+  const roundInfo = document.getElementById('round-info');
+  const gameOverScreen = document.getElementById('game-over');
+  const restartButton = document.getElementById('restart-button');
+
+  // List of funny comments in Russian
+  const funnyComments = [
+    "То, что ты только что сказал, одно из самых безумно идиотских, что я когда-либо слышал.",
+    "О, да, называть тебя глупым — это оскорбление для глупых людей.",
+    "Неправильно! Ты, наверное, учишься в Академии Бестолковости.",
+    "Это был промах! Возможно, тебе стоит больше учиться.",
+    "Ошибочка вышла! Но не волнуйся, все мы иногда дурим.",
+    "Упс! Ошибка! Может, перезагрузишь мозги?",
+    "Хм, не то слово! Может, у тебя что-то не так с памятью?",
+    "Неправильно! Твои ответы — шедевр абсурда.",
+    "Держись! Попробуй снова, если можешь.",
+    "Это не правильно, но ничего страшного! Попробуй еще раз!"
+  ];
+
+  // Initialize the game
+  function initGame() {
+    currentRound = 0;
+    gameOverScreen.style.display = 'none';
+    loadRound();
+  }
+
+  // Load a specific round
+  function loadRound() {
+    if (currentRound >= rounds.length) {
+      endGame();
+      return;
+    }
+
+    roundInfo.textContent = `Раунд: ${currentRound + 1} из ${rounds.length}`;
+    const currentPairs = rounds[currentRound].pairs;
+    germanContainer.innerHTML = '';
+    russianContainer.innerHTML = '';
+    selectedGerman = null;
+    selectedRussian = null;
+
+    // Shuffle words to randomize their order
+    const shuffledGerman = shuffleArray([...currentPairs]);
+    const shuffledRussian = shuffleArray([...currentPairs]);
+
+    // Populate German words
+    shuffledGerman.forEach(pair => {
+      const wordDiv = document.createElement('div');
+      wordDiv.classList.add('word');
+      wordDiv.setAttribute('data-id', pair.german.word); // Using word as identifier
+
+      // Create main word element
+      const mainWord = document.createElement('div');
+      mainWord.textContent = pair.german.word;
+      wordDiv.appendChild(mainWord);
+
+      // Add details if verb or preposition
+      if (pair.german.category === 'verb') {
+        const details = document.createElement('div');
+        details.classList.add('word-details');
+        details.textContent = `Формы: ${pair.german.forms.join(', ')}${pair.german.separable ? ', отделяемый префикс' : ''}`;
+        wordDiv.appendChild(details);
+      } else if (pair.german.category === 'preposition') {
+        const details = document.createElement('div');
+        details.classList.add('word-details');
+        details.textContent = `Падеж: ${pair.german.case}`;
+        wordDiv.appendChild(details);
+      }
+
+      wordDiv.addEventListener('click', () => selectGermanWord(wordDiv, pair));
+      germanContainer.appendChild(wordDiv);
+    });
+
+    // Populate Russian words
+    shuffledRussian.forEach(pair => {
+      const wordDiv = document.createElement('div');
+      wordDiv.classList.add('word');
+      wordDiv.setAttribute('data-id', pair.german.word); // Using word as identifier
+      wordDiv.textContent = pair.russian;
+      wordDiv.addEventListener('click', () => selectRussianWord(wordDiv, pair));
+      russianContainer.appendChild(wordDiv);
+    });
+  }
+
+  // Shuffle array using Fisher-Yates algorithm
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  // Handle German word selection
+  function selectGermanWord(element, pair) {
+    if (element.classList.contains('matched')) return;
+    if (selectedGerman && selectedGerman !== element) {
+      selectedGerman.classList.remove('selected');
+    }
+    selectedGerman = element;
+    selectedGerman.classList.add('selected');
+    checkMatch();
+  }
+
+  // Handle Russian word selection
+  function selectRussianWord(element, pair) {
+    if (element.classList.contains('matched')) return;
+    if (selectedRussian && selectedRussian !== element) {
+      selectedRussian.classList.remove('selected');
+    }
+    selectedRussian = element;
+    selectedRussian.classList.add('selected');
+    checkMatch();
+  }
+
+  // Check if selected words match
+  function checkMatch() {
+    if (selectedGerman && selectedRussian) {
+      const germanWord = selectedGerman.getAttribute('data-id');
+      const russianWord = selectedRussian.textContent;
+
+      // Find the correct pair
+      const currentPairs = rounds[currentRound].pairs;
+      const correctPair = currentPairs.find(pair => pair.german.word === germanWord);
+
+      if (correctPair && correctPair.russian === russianWord) {
+        // Correct match
+        selectedGerman.classList.add('flash-green');
+        selectedRussian.classList.add('flash-green');
+
+        setTimeout(() => {
+          selectedGerman.classList.add('matched', 'fade-out');
+          selectedRussian.classList.add('matched', 'fade-out');
+          selectedGerman.classList.remove('selected', 'flash-green');
+          selectedRussian.classList.remove('selected', 'flash-green');
+          selectedGerman = null;
+          selectedRussian = null;
+
+          // Check if all words are matched
+          const remainingGerman = document.querySelectorAll('#german-words .word:not(.matched)');
+          if (remainingGerman.length === 0) {
+            currentRound++;
+            setTimeout(loadRound, 1000);
+          }
+        }, 500);
+      } else {
+        // Incorrect match
+        selectedGerman.classList.add('flash-red');
+        selectedRussian.classList.add('flash-red');
+        showFunnyComment();
+
+        setTimeout(() => {
+          selectedGerman.classList.remove('selected', 'flash-red');
+          selectedRussian.classList.remove('selected', 'flash-red');
+          selectedGerman = null;
+          selectedRussian = null;
+        }, 500);
+
+        // Highlight comments with red background and keep visible for 5 seconds
+        commentsDiv.style.backgroundColor = "rgba(244, 67, 54, 0.9)"; // Red background
+        commentsDiv.style.color = "#fff";
+      }
+    }
+  }
+
+  // Show a random funny comment
+  function showFunnyComment() {
+    const comment = funnyComments[Math.floor(Math.random() * funnyComments.length)];
+    commentsDiv.textContent = comment;
+    commentsDiv.style.display = 'block';
+    // Reset background color to red for incorrect matches
+    commentsDiv.style.backgroundColor = "rgba(244, 67, 54, 0.9)"; // Red background
+    commentsDiv.style.color = "#fff";
+    setTimeout(() => {
+      commentsDiv.style.display = 'none';
+      // Reset to default background for future correct matches
+      commentsDiv.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+      commentsDiv.style.color = "#000";
+    }, 5000);
+  }
+
+  // End the game
+  function endGame() {
+    gameOverScreen.style.display = 'flex';
+  }
+
+  // Restart the game
+  restartButton.addEventListener('click', () => {
+    initGame();
+  });
+
+  // Start the game on page load
+  window.onload = initGame;
+</script>
+</body>
+</html>
