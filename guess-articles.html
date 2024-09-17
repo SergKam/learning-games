@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>German Sentence Completion Game</title>
+  <style>
+      body {
+          background-color: #d0e7f9; /* Light blue-grey background */
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+      }
+
+      h1 {
+          text-align: center;
+      }
+
+      #round-info {
+          text-align: center;
+          font-size: 1.2em;
+          margin-bottom: 20px;
+      }
+
+      .sentence-container {
+          background-color: #f0f8ff;
+          border: 2px solid #ccc;
+          border-radius: 10px;
+          box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
+          padding: 15px;
+          margin-bottom: 15px;
+          position: relative;
+      }
+
+      .sentence {
+          font-size: 1.1em;
+      }
+
+      .dropdown {
+          padding: 5px;
+          margin: 0 3px;
+          font-size: 1em;
+      }
+
+      .dropdown.correct {
+          background-color: #c8e6c9; /* Light green */
+      }
+
+      .dropdown.incorrect {
+          background-color: #ffcdd2; /* Light red */
+      }
+
+      .info-icon {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          cursor: pointer;
+          font-size: 1.2em;
+          color: #888;
+      }
+
+      .info-icon:hover {
+          color: #555;
+      }
+
+      .tooltip {
+          display: none;
+          position: absolute;
+          top: -5px;
+          right: 30px;
+          background-color: rgba(255,255,255,0.9);
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          font-size: 0.9em;
+          max-width: 300px;
+          z-index: 1000;
+      }
+
+      .info-icon:hover + .tooltip {
+          display: block;
+      }
+
+      #game-over {
+          display: none;
+          text-align: center;
+          margin-top: 50px;
+      }
+
+      #restart-button {
+          padding: 10px 20px;
+          font-size: 1.2em;
+          background-color: #4CAF50;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+          transition: background-color 0.3s;
+          margin-top: 20px;
+      }
+
+      #restart-button:hover {
+          background-color: #45a049;
+      }
+  </style>
+</head>
+<body>
+
+<h1>Угадай пропущенные слова</h1>
+<div id="round-info">Экран: 1 из 10</div>
+
+<div id="sentences-container">
+  <!-- Sentences will be loaded here -->
+</div>
+
+<div id="game-over">
+  <h2>Игра окончена!</h2>
+  <button id="restart-button">Перезапустить игру</button>
+</div>
+
+<script>
+  const rounds = [
+    // Screen 1
+    [
+      {
+        german: "Ich gehe ___ Schule, ___ ich lernen möchte.",
+        options: ["zur", "in die", "an der", "weil", "wenn"],
+        correct: ["zur", "weil"],
+        russian: "Я иду в школу, потому что хочу учиться."
+      },
+      {
+        german: "___ Wetter ist schön, ___ wir gehen spazieren.",
+        options: ["Das", "Weil", "deshalb", "und", "denn"],
+        correct: ["Das", "deshalb"],
+        russian: "Погода хорошая, поэтому мы идем гулять."
+      },
+      {
+        german: "Er kauft ___ Buch ___ liest es sofort.",
+        options: ["ein", "und", "oder", "der", "das"],
+        correct: ["ein", "und"],
+        russian: "Он покупает книгу и сразу ее читает."
+      },
+      {
+        german: "Sie spricht ___ Freund ___ telefoniert mit ihm.",
+        options: ["mit dem", "aber", "und", "oder", "ohne"],
+        correct: ["mit dem", "und"],
+        russian: "Она говорит с другом и разговаривает с ним по телефону."
+      },
+      {
+        german: "Wir fahren ___ Auto ___ besuchen unsere Oma.",
+        options: ["mit dem", "oder", "zu der", "denn", "und"],
+        correct: ["mit dem", "und"],
+        russian: "Мы едем на машине и навещаем нашу бабушку."
+      },
+      {
+        german: "Er lernt Deutsch, ___ er in Deutschland arbeiten will.",
+        options: ["weil", "oder", "aber", "denn", "wenn"],
+        correct: ["weil"],
+        russian: "Он учит немецкий, потому что хочет работать в Германии."
+      },
+      {
+        german: "___ Haus ist groß ___ hat viele Zimmer.",
+        options: ["Das", "und", "aber", "oder", "ein"],
+        correct: ["Das", "und"],
+        russian: "Дом большой и имеет много комнат."
+      },
+      {
+        german: "Sie trinkt Kaffee ___ Tee?",
+        options: ["oder", "und", "aber", "denn", "weil"],
+        correct: ["oder"],
+        russian: "Она пьет кофе или чай?"
+      },
+      {
+        german: "Wir bleiben zu Hause, ___ es regnet.",
+        options: ["weil", "denn", "aber", "oder", "und"],
+        correct: ["weil"],
+        russian: "Мы остаемся дома, потому что идет дождь."
+      },
+      {
+        german: "___ Katze spielt ___ schläft.",
+        options: ["Die", "und", "oder", "aber", "ein"],
+        correct: ["Die", "und"],
+        russian: "Кошка играет и спит."
+      }
+    ],
+    // Screen 2
+    [
+      {
+        german: "Obwohl ___ Wetter schlecht ist, gehen wir ___ Park.",
+        options: ["das", "dem", "den", "zum", "in den", "weil", "aber"],
+        correct: ["das", "in den"],
+        russian: "Несмотря на плохую погоду, мы идем в парк."
+      },
+      {
+        german: "Er hat ___ Buch gelesen, ___ ich ihm empfohlen habe.",
+        options: ["das", "dem", "den", "welches", "weil", "dass"],
+        correct: ["das", "welches"],
+        russian: "Он прочитал книгу, которую я ему порекомендовал."
+      },
+      {
+        german: "___ Mann, ___ dort steht, ist mein Onkel.",
+        options: ["Der", "den", "und", "aber", "weil", "der"],
+        correct: ["Der", "der"],
+        russian: "Мужчина, который там стоит, мой дядя."
+      },
+      {
+        german: "Wir gehen ins Kino, ___ wir haben Zeit.",
+        options: ["wenn", "weil", "aber", "und", "oder"],
+        correct: ["wenn"],
+        russian: "Мы идем в кино, если у нас есть время."
+      },
+      {
+        german: "Sie hat das Geschenk gekauft, ___ es ___ ist.",
+        options: ["weil", "denn", "und", "aber", "doch","schön"],
+        correct: ["weil", "schön"],
+        russian: "Она купила подарок, потому что он красивый."
+      },
+      {
+        german: "Ich kann nicht kommen, ___ ich krank bin.",
+        options: ["weil", "aber", "denn", "und", "oder"],
+        correct: ["weil"],
+        russian: "Я не могу прийти, потому что я болен."
+      },
+      {
+        german: "Er arbeitet hart, ___ er seine Ziele erreichen will.",
+        options: ["weil", "aber", "denn", "oder", "und"],
+        correct: ["weil"],
+        russian: "Он усердно работает, потому что хочет достичь своих целей."
+      },
+      {
+        german: "___ du möchtest, können wir morgen anfangen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если ты хочешь, мы можем начать завтра."
+      },
+      {
+        german: "Sie fährt mit dem Bus, ___ sie kein Auto hat.",
+        options: ["weil", "aber", "denn", "oder", "und"],
+        correct: ["weil"],
+        russian: "Она едет на автобусе, потому что у нее нет машины."
+      },
+      {
+        german: "Wir essen im Restaurant, ___ es heute nicht regnet.",
+        options: ["wenn", "weil", "aber", "und", "oder"],
+        correct: ["wenn"],
+        russian: "Мы едим в ресторане, если сегодня не идет дождь."
+      }
+    ],
+    // Screen 3
+    [
+      {
+        german: "Nachdem ___ den Film gesehen haben, gehen wir ___ Abendessen.",
+        options: ["wir", "uns", "du", "aber", "und"],
+        correct: ["wir", "zum"],
+        russian: "После того как мы посмотрели фильм, мы идем ужинать."
+      },
+      {
+        german: "Ich lerne Deutsch, ___ ich in Deutschland arbeiten möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Я учу немецкий, потому что хочу работать в Германии."
+      },
+      {
+        german: "Er spielt Fußball, ___ er lieber Tennis spielen könnte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["aber"],
+        russian: "Он играет в футбол, хотя мог бы играть в теннис."
+      },
+      {
+        german: "Sie hat das Auto repariert, ___ es früher nicht funktionierte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она починила машину, потому что она раньше не работала."
+      },
+      {
+        german: "Wir bleiben zu Hause, ___ es sehr kalt ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы остаемся дома, потому что очень холодно."
+      },
+      {
+        german: "___ du möchtest, können wir einen Ausflug machen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если ты хочешь, мы можем сделать экскурсию."
+      },
+      {
+        german: "Ich habe Hunger, ___ wir können jetzt essen.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["und"],
+        russian: "Я голоден, и мы можем сейчас поесть."
+      },
+      {
+        german: "Sie liest ein Buch, ___ sie lernen muss.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["aber"],
+        russian: "Она читает книгу, хотя ей нужно учиться."
+      },
+      {
+        german: "Er fährt schnell, ___ er pünktlich sein will.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он едет быстро, потому что хочет быть пунктуальным."
+      },
+      {
+        german: "Wir trinken Kaffee, ___ es morgen regnen soll.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы пьем кофе, потому что завтра должен идти дождь."
+      }
+    ],
+    // Screen 4
+    [
+      {
+        german: "Während ___ den Unterricht hören, macht er ___ Notizen.",
+        options: ["wir", "uns", "du", "aber", "und"],
+        correct: ["wir", "Notizen"],
+        russian: "Во время того как мы слушаем урок, он делает заметки."
+      },
+      {
+        german: "Obwohl ___ müde ist, geht sie zur Arbeit.",
+        options: ["er", "sie", "das", "und", "aber"],
+        correct: ["sie"],
+        russian: "Хотя она устала, она идет на работу."
+      },
+      {
+        german: "Ich trinke Tee, ___ Kaffee besser mag.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["aber"],
+        russian: "Я пью чай, хотя предпочитаю кофе."
+      },
+      {
+        german: "Sie geht ins Fitnessstudio, ___ sie gesund bleiben möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она ходит в спортзал, потому что хочет оставаться здоровой."
+      },
+      {
+        german: "Wir fahren nach Berlin, ___ es eine interessante Stadt ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы едем в Берлин, потому что это интересный город."
+      },
+      {
+        german: "___ es spät ist, müssen wir noch arbeiten.",
+        options: ["Da", "Weil", "Und", "Oder", "Aber"],
+        correct: ["Da"],
+        russian: "Поскольку уже поздно, нам еще нужно работать."
+      },
+      {
+        german: "Er kann kommen, ___ er Zeit hat.",
+        options: ["wenn", "weil", "aber", "und", "oder"],
+        correct: ["wenn"],
+        russian: "Он может прийти, если у него будет время."
+      },
+      {
+        german: "Ich esse Kuchen, ___ ich keine Zeit zum Kochen habe.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Я ем торт, потому что у меня нет времени готовить."
+      },
+      {
+        german: "Sie spricht fließend Deutsch, ___ sie es seit Jahren lernt.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она свободно говорит по-немецки, потому что изучает его уже много лет."
+      },
+      {
+        german: "Wir reisen nach Spanien, ___ wir den Sommer genießen wollen.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы путешествуем в Испанию, потому что хотим насладиться летом."
+      }
+    ],
+    // Screen 5
+    [
+      {
+        german: "Nachdem ___ die Hausaufgaben gemacht hat, spielt sie ___.",
+        options: ["sie", "er", "das", "und", "aber"],
+        correct: ["sie", "ihre"],
+        russian: "После того как она сделала домашние задания, она играет."
+      },
+      {
+        german: "Wir gehen ins Theater, ___ es heute Abend eine Aufführung gibt.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы идем в театр, потому что сегодня вечером идет спектакль."
+      },
+      {
+        german: "Er bleibt zu Hause, ___ er krank ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он остается дома, потому что болен."
+      },
+      {
+        german: "Sie kauft ein neues Kleid, ___ es die alte kaputt geht.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она покупает новое платье, потому что старое сломалось."
+      },
+      {
+        german: "___ es regnet, haben wir den Ausflug abgesagt.",
+        options: ["Weil", "Aber", "Und", "Oder", "Den"],
+        correct: ["Weil"],
+        russian: "Потому что идет дождь, мы отменили экскурсию."
+      },
+      {
+        german: "Ich trinke Wasser, ___ ich Durst habe.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Я пью воду, потому что у меня жажда."
+      },
+      {
+        german: "Sie liest ein interessantes Buch, ___ es spannend ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она читает интересную книгу, потому что она захватывающая."
+      },
+      {
+        german: "Wir essen im Restaurant, ___ wir nicht kochen wollen.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы едим в ресторане, потому что не хотим готовить."
+      },
+      {
+        german: "___ du möchtest, können wir ins Kino gehen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если ты хочешь, мы можем пойти в кино."
+      },
+      {
+        german: "Er spielt Gitarre, ___ er Musik liebt.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он играет на гитаре, потому что любит музыку."
+      }
+    ],
+    // Screen 6
+    [
+      {
+        german: "Während ___ am Strand sind, haben wir viele Fotos gemacht.",
+        options: ["wir", "uns", "du", "aber", "und"],
+        correct: ["wir", "und"],
+        russian: "Пока мы были на пляже, мы сделали много фотографий."
+      },
+      {
+        german: "Er hat das Problem gelöst, ___ er sehr klug ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он решил проблему, потому что он очень умен."
+      },
+      {
+        german: "Sie geht einkaufen, ___ sie keine Zeit zu Hause hat.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она идет за покупками, потому что у нее нет времени дома."
+      },
+      {
+        german: "Wir bleiben zu Hause, ___ es sehr kalt ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы остаемся дома, потому что очень холодно."
+      },
+      {
+        german: "___ du möchtest, können wir einen Spaziergang machen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если ты хочешь, мы можем совершить прогулку."
+      },
+      {
+        german: "Ich lerne Deutsch, ___ ich in Deutschland arbeiten will.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Я учу немецкий, потому что хочу работать в Германии."
+      },
+      {
+        german: "Sie spielt Klavier, ___ sie Musik liebt.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она играет на пианино, потому что любит музыку."
+      },
+      {
+        german: "Wir essen zu Abend, ___ wir heute keine Lust zu kochen haben.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы ужинаем, потому что сегодня не хочется готовить."
+      },
+      {
+        german: "Er fährt schnell, ___ er zu spät kommen will.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он едет быстро, потому что хочет опоздать."
+      },
+      {
+        german: "___ es regnet, bleiben wir zu Hause.",
+        options: ["Weil", "Aber", "Und", "Oder", "Denn"],
+        correct: ["Weil"],
+        russian: "Потому что идет дождь, мы остаемся дома."
+      }
+    ],
+    // Screen 7
+    [
+      {
+        german: "Nachdem ___ die Prüfung bestanden hat, feiert sie mit Freunden.",
+        options: ["sie", "er", "das", "und", "aber"],
+        correct: ["sie", "und"],
+        russian: "После того как она сдала экзамен, она празднует с друзьями."
+      },
+      {
+        german: "Er kauft ein neues Auto, ___ es sehr alt ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он покупает новую машину, потому что старая очень старая."
+      },
+      {
+        german: "Sie geht ins Kino, ___ sie den Film sehen möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она идет в кино, потому что хочет посмотреть фильм."
+      },
+      {
+        german: "Wir reisen nach Italien, ___ wir die Kultur kennenlernen wollen.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы путешествуем в Италию, потому что хотим познакомиться с культурой."
+      },
+      {
+        german: "___ du Zeit hast, können wir zusammen lernen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если у тебя есть время, мы можем учиться вместе."
+      },
+      {
+        german: "Er trinkt Kaffee, ___ er wach bleiben möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он пьет кофе, потому что хочет оставаться бодрым."
+      },
+      {
+        german: "Sie liest ein Buch, ___ es sehr interessant ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она читает книгу, потому что она очень интересная."
+      },
+      {
+        german: "Wir gehen spazieren, ___ das Wetter schön ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы идем гулять, потому что погода хорошая."
+      },
+      {
+        german: "Er bleibt zu Hause, ___ er krank ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он остается дома, потому что он болен."
+      },
+      {
+        german: "___ du möchtest, können wir einen Ausflug machen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если ты хочешь, мы можем сделать экскурсию."
+      }
+    ],
+    // Screen 8
+    [
+      {
+        german: "Obwohl ___ viel zu tun hat, nimmt sie sich Zeit für ihre Familie.",
+        options: ["er", "sie", "das", "und", "aber"],
+        correct: ["sie"],
+        russian: "Хотя у нее много дел, она находит время для своей семьи."
+      },
+      {
+        german: "Wir kaufen frisches Gemüse, ___ es gesund ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы покупаем свежие овощи, потому что они полезны."
+      },
+      {
+        german: "Sie lernt Spanisch, ___ sie in Spanien arbeiten möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она учит испанский, потому что хочет работать в Испании."
+      },
+      {
+        german: "Er fährt Fahrrad, ___ er die Umwelt schützen will.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он ездит на велосипеде, потому что хочет защитить окружающую среду."
+      },
+      {
+        german: "___ es spät ist, müssen wir noch etwas erledigen.",
+        options: ["Da", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Da"],
+        russian: "Поскольку уже поздно, нам еще нужно кое-что сделать."
+      },
+      {
+        german: "Ich esse gesund, ___ ich fit bleiben möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Я питаюсь здорово, потому что хочу оставаться в форме."
+      },
+      {
+        german: "Sie geht joggen, ___ sie sich fit halten will.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она идет на пробежку, потому что хочет поддерживать форму."
+      },
+      {
+        german: "Wir bleiben zu Hause, ___ es stark regnet.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы остаемся дома, потому что идет сильный дождь."
+      },
+      {
+        german: "___ du Zeit hast, können wir zusammen essen gehen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если у тебя есть время, мы можем пойти поесть вместе."
+      },
+      {
+        german: "Er kauft ein neues Haus, ___ das alte renoviert werden muss.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он покупает новый дом, потому что старый нужно отремонтировать."
+      }
+    ],
+    // Screen 9
+    [
+      {
+        german: "Nachdem ___ das Haus verlassen hat, geht er zur Arbeit.",
+        options: ["er", "sie", "das", "und", "aber"],
+        correct: ["er", "und"],
+        russian: "После того как он покинул дом, он идет на работу."
+      },
+      {
+        german: "Wir reisen nach Frankreich, ___ wir die Kultur erleben wollen.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы путешествуем во Францию, потому что хотим испытать культуру."
+      },
+      {
+        german: "Sie bleibt zu Hause, ___ sie krank ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она остается дома, потому что она болеет."
+      },
+      {
+        german: "Er kauft ein neues Fahrrad, ___ das alte kaputt ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он покупает новый велосипед, потому что старый сломан."
+      },
+      {
+        german: "___ es sonnig ist, machen wir ein Picknick.",
+        options: ["Weil", "Aber", "Und", "Oder", "Denn"],
+        correct: ["Weil"],
+        russian: "Потому что солнечно, мы делаем пикник."
+      },
+      {
+        german: "Ich trinke keinen Kaffee, ___ ich keine Lust habe.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Я не пью кофе, потому что у меня нет желания."
+      },
+      {
+        german: "Sie geht ins Fitnessstudio, ___ sie fit bleiben möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она ходит в спортзал, потому что хочет оставаться в форме."
+      },
+      {
+        german: "Wir essen im Restaurant, ___ wir heute nicht kochen wollen.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы едим в ресторане, потому что сегодня не хотим готовить."
+      },
+      {
+        german: "Er spielt Gitarre, ___ er Musik liebt.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он играет на гитаре, потому что любит музыку."
+      },
+      {
+        german: "___ du möchtest, können wir einen Film ansehen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если ты хочешь, мы можем посмотреть фильм."
+      }
+    ],
+    // Screen 10
+    [
+      {
+        german: "Nachdem ___ das Studium abgeschlossen hat, sucht er einen Job.",
+        options: ["er", "sie", "das", "und", "aber"],
+        correct: ["er", "und"],
+        russian: "После того как он завершит обучение, он ищет работу."
+      },
+      {
+        german: "Wir bleiben zu Hause, ___ es heute Abend regnen soll.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы остаемся дома, потому что сегодня вечером должен пойти дождь."
+      },
+      {
+        german: "Sie lernt Französisch, ___ sie in Frankreich arbeiten möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она учит французский, потому что хочет работать во Франции."
+      },
+      {
+        german: "Er fährt mit dem Zug, ___ er das Auto nicht benutzen möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он едет на поезде, потому что не хочет пользоваться машиной."
+      },
+      {
+        german: "___ du Zeit hast, können wir zusammen essen gehen.",
+        options: ["Wenn", "Weil", "Und", "Aber", "Oder"],
+        correct: ["Wenn"],
+        russian: "Если у тебя есть время, мы можем пойти поесть вместе."
+      },
+      {
+        german: "Ich kaufe frisches Obst, ___ es gesund ist.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Я покупаю свежие фрукты, потому что они полезны."
+      },
+      {
+        german: "Sie reist nach Spanien, ___ sie die Sprache lernen möchte.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Она путешествует в Испанию, потому что хочет выучить язык."
+      },
+      {
+        german: "Wir gehen ins Theater, ___ wir den neuen Schauspieler sehen wollen.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Мы идем в театр, потому что хотим увидеть нового актера."
+      },
+      {
+        german: "Er bleibt zu Hause, ___ er sich ausruhen muss.",
+        options: ["weil", "aber", "und", "oder", "denn"],
+        correct: ["weil"],
+        russian: "Он остается дома, потому что ему нужно отдохнуть."
+      },
+      {
+        german: "___ es schon spät ist, machen wir noch einen Spaziergang.",
+        options: ["Weil", "Aber", "Und", "Oder", "Denn"],
+        correct: ["Weil"],
+        russian: "Потому что уже поздно, мы еще делаем прогулку."
+      }
+    ]
+  ];
+
+  let currentScreen = 0;
+
+  const sentencesContainer = document.getElementById('sentences-container');
+  const roundInfo = document.getElementById('round-info');
+  const gameOverDiv = document.getElementById('game-over');
+  const restartButton = document.getElementById('restart-button');
+
+  function initGame() {
+    currentScreen = 0;
+    gameOverDiv.style.display = 'none';
+    loadScreen();
+  }
+
+  function loadScreen() {
+    if (currentScreen >= rounds.length) {
+      endGame();
+      return;
+    }
+
+    roundInfo.textContent = `Экран: ${currentScreen + 1} из ${rounds.length}`;
+    sentencesContainer.innerHTML = '';
+
+    const sentences = rounds[currentScreen];
+
+    sentences.forEach((sentenceObj, index) => {
+      const container = document.createElement('div');
+      container.classList.add('sentence-container');
+
+      const sentence = document.createElement('div');
+      sentence.classList.add('sentence');
+
+      const parts = sentenceObj.german.split('___');
+      const correctAnswers = sentenceObj.correct;
+      const options = new Set([...sentenceObj.options, ...sentenceObj.correct])
+
+      // Keep track of total blanks and correct selections
+      let totalBlanks = correctAnswers.length;
+      let correctSelections = 0;
+
+      // Build the sentence with dropdowns
+      for (let i = 0; i < parts.length; i++) {
+        sentence.appendChild(document.createTextNode(parts[i]));
+        if (i < correctAnswers.length) {
+          const select = document.createElement('select');
+          select.classList.add('dropdown');
+          const emptyOption = document.createElement('option');
+          emptyOption.value = '';
+          emptyOption.textContent = '';
+          select.appendChild(emptyOption);
+
+          // Randomize options
+          const shuffledOptions = shuffleArray([...options]);
+
+          shuffledOptions.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option;
+            optionElement.textContent = option;
+            select.appendChild(optionElement);
+          });
+
+          select.addEventListener('change', function() {
+            if (select.value === correctAnswers[i]) {
+              select.classList.remove('incorrect');
+              select.classList.add('correct');
+              select.disabled = true;
+              correctSelections++;
+              checkCompletion();
+            } else {
+              select.classList.remove('correct');
+              select.classList.add('incorrect');
+            }
+          });
+
+          sentence.appendChild(select);
+        }
+      }
+
+      // Info icon and tooltip
+      const infoIcon = document.createElement('span');
+      infoIcon.classList.add('info-icon');
+      infoIcon.innerHTML = 'ℹ️';
+
+      const tooltip = document.createElement('div');
+      tooltip.classList.add('tooltip');
+      tooltip.textContent = sentenceObj.russian;
+
+      infoIcon.addEventListener('mouseover', () => {
+        tooltip.style.display = 'block';
+      });
+      infoIcon.addEventListener('mouseout', () => {
+        tooltip.style.display = 'none';
+      });
+
+      container.appendChild(sentence);
+      container.appendChild(infoIcon);
+      container.appendChild(tooltip);
+
+      sentencesContainer.appendChild(container);
+
+      function checkCompletion() {
+        if (correctSelections === totalBlanks) {
+          // All blanks are correctly filled
+          const allSelects = sentencesContainer.querySelectorAll('select');
+          const allCorrect = [...allSelects].every(s => s.disabled);
+          if (allCorrect) {
+            // Delay before moving to next screen
+            setTimeout(() => {
+              currentScreen++;
+              loadScreen();
+            }, 1000);
+          }
+        }
+      }
+    });
+  }
+
+  function endGame() {
+    sentencesContainer.innerHTML = '';
+    roundInfo.textContent = '';
+    gameOverDiv.style.display = 'block';
+  }
+
+  restartButton.addEventListener('click', () => {
+    initGame();
+  });
+
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  // Initialize the game on page load
+  window.onload = initGame;
+</script>
+
+</body>
+</html>
