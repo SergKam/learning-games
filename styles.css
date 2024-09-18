@@ -60,13 +60,8 @@ body {
     align-items: center;
 }
 
-.word {
-    width: 100%;
-    box-sizing: border-box;
-}
-
 .game-card, .word {
-    width: 45%;
+    width: 100%;
     background-color: #f0f8ff;
     border: 2px solid #ccc;
     border-radius: 10px;
