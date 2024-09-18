@@ -42,13 +42,27 @@ body {
     box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
 }
 
-.games-container, .column {
+.games-container {
     width: 80%;
     max-width: 1000px;
     margin-top: 40px;
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
+}
+
+.column {
+    width: 45%;
+    max-width: 1000px;
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.word {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .game-card, .word {
