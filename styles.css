@@ -283,3 +283,105 @@ body {
 .word.matched {
     display: none;
 }
+
+/* Der Die Das Game Specific Styles */
+#words-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 80%;
+    max-width: 600px;
+    margin: 20px 0;
+}
+
+.word-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.word {
+    flex: 1;
+    text-align: left;
+    padding: 10px 15px;
+    font-size: 1.2em;
+}
+
+.dropdown {
+    flex: 0 0 100px;
+    padding: 5px;
+    font-size: 1em;
+}
+
+.info-icon {
+    flex: 0 0 30px;
+    text-align: center;
+    font-size: 1.2em;
+    cursor: pointer;
+}
+
+.tooltip {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: 30px;
+    background-color: rgba(255,255,255,0.9);
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 0.9em;
+    max-width: 300px;
+    z-index: 1000;
+}
+
+.info-icon:hover + .tooltip {
+    display: block;
+}
+
+#game-over {
+    display: none;
+    text-align: center;
+    margin-top: 50px;
+}
+
+#restart-button {
+    padding: 10px 20px;
+    font-size: 1.2em;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.3s;
+    margin-top: 20px;
+}
+
+#restart-button:hover {
+    background-color: #45a049;
+}
+
+/* Responsive Design Adjustments */
+@media (max-width: 600px) {
+    .word-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dropdown {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .info-icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+
+    .tooltip {
+        right: 10px;
+    }
+}
